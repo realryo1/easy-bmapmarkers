@@ -1,8 +1,8 @@
-name: BlueMapSignMarkers
+name: EasyBMSignMarkers
 version: ${version}
-main: dev.kugge.signmarkers.SignMarkers
+main: dev.deimoslabs.easysignmarkers.SignMarkers
 api-version: 1.19
 folia-supported: true
-authors: [kugge]
+authors: [deimiczny]
 depend: [BlueMap]
-description: Add markers to BlueMap with signs
+description: Easily add markers to BlueMap with in-game signs
