@@ -1,33 +1,32 @@
 plugins {
     `java-library`
     id("com.github.johnrengelman.shadow") version "8.0.0"
-    id("xyz.jpenilla.run-paper") version "2.0.1"
 }
 
-
 group = "dev.deimoslabs"
-version = "0.9.3"
+version = "0.9.4"
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(18))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
     maven("https://jitpack.io")
-    maven("https://oss.sonatype.org/content/groups/public/")
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {
-    compileOnly("dev.folia:folia-api:1.20.1-R0.1-SNAPSHOT")
+    implementation("net.kyori:adventure-text-minimessage:4.26.1")
+    implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
+    compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
     compileOnly("com.github.BlueMap-Minecraft:BlueMapAPI:v2.4.0")
 }
 
 tasks.compileJava {
     options.encoding = Charsets.UTF_8.name()
-    options.release.set(18)
+    options.release.set(17)
 }
 
 tasks.processResources {

@@ -4,6 +4,7 @@ package dev.deimoslabs.easysignmarkers;
  * Common constants used across the plugin.
  */
 public class Constants {
+    /** Modrinth plugin slug used for update checks. */
     public static final String MODRINTH_SLUG = "easy-bluemap-sign-markers";
     /**
      * Relative path inside BlueMap webroot where marker images are stored.
@@ -17,6 +18,12 @@ public class Constants {
      * Prefix used when creating per-world marker set filenames.
      */
     public final static String MARKER_SET_PREFIX = "marker-set-";
+
+    /**
+     * Prefix used when creating per-world marker id.
+     */
+    public final static String MARKER_ID_PREFIX = "marker-";
+
     /**
      * Label prefix displayed in BlueMap for sign markers.
      */
@@ -29,12 +36,25 @@ public class Constants {
      * Template message shown when a marker is removed. Format args: x, y, z (integers).
      */
     public final static String REMOVED_TEMPLATE = "Marker successfully removed at %d %d %d";
+
     /**
-     * MiniMessage template used to announce that a marker was added. Argument: marker text.
+     * Template message shown when a marker is added. Format args: s (string), x, y, z (integers).
      */
-    public final static String ADDED_TEMPLATE = "<green>[EasyBMSignMarkers] %s</green>";
+    public final static String ADDED_TEMPLATE = "Marker <%s> successfully added at %d %d %d";
+
     /**
-     * HTML template used as the marker detail content. Three string placeholders for lines.
+    * Placeholder text used in marker labels to indicate where the marker text goes.
+     */
+    public final static String MARKER_PLACEHOLDER = "> marker <";
+
+    /**
+     * MiniMessage template used for player messages. Argument: marker text.
+     */
+    public final static String MSG_PREFIX = "<green>[EasyBMSignMarkers] %s</green>";
+    /**
+     * HTML template used as the marker detail content. The first three string placeholders
+     * are used for the three label lines. Subsequent placeholders are used for X, Y, Z,
+     * timestamp and author (in that order).
      */
     public final static String HTML_TEMPLATE = """
             <div style='

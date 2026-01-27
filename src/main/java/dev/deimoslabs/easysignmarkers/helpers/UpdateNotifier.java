@@ -42,7 +42,7 @@ public class UpdateNotifier {
     public void checkForUpdates() {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                String current = plugin.getPluginMeta().getVersion();
+                String current = plugin.getDescription().getVersion();
                 String latest = fetchLatestVersion();
 
                 if (latest == null) {

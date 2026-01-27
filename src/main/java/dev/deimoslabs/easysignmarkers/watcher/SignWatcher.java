@@ -8,7 +8,6 @@ import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
 import dev.deimoslabs.easysignmarkers.FeatureProvider;
 import dev.deimoslabs.easysignmarkers.helpers.MarkerIcon;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.block.Block;
@@ -74,18 +73,14 @@ public class SignWatcher implements Listener {
         MarkerIcon markerIcon;
 
         // ### Mapping sign's line 0 to specific marker type (translates to icon)
-        final Component header = event.line(0);
-        if (header != Component.empty() && header != null) {
-            String line0 = LegacyComponentSerializer.legacySection().serialize(header);
-            if (line0.startsWith("[") && line0.endsWith("]")) {
-                markerIcon = MarkerIcon.match(line0);
-                iconLabel = markerIcon.name();
-            } else {
-                return;
-            }
+        final String line0 = event.getLine(0);
+        if (line0 != null && !line0.isBlank() && line0.startsWith("[") && line0.endsWith("]")) {
+            markerIcon = MarkerIcon.match(line0);
+            iconLabel = markerIcon.name();
         } else {
             return;
         }
+
 
         // ### Getting the actual image file for a marker
         String icon = IMAGE_PATH + iconLabel + ".png";
@@ -105,24 +100,9 @@ public class SignWatcher implements Listener {
 
 
         // ### Building label for the sign, from lines 1-3
-        String label1 = "";
-        String label2 = "";
-        String label3 = "";
-
-        final Component clabel1 = event.line(1);
-        if (clabel1 != null) {
-            label1 = LegacyComponentSerializer.legacySection().serialize(clabel1);
-        }
-
-        final Component clabel2 = event.line(2);
-        if (clabel2 != null) {
-            label2 = LegacyComponentSerializer.legacySection().serialize(clabel2);
-        }
-
-        final Component clabel3 = event.line(3);
-        if (clabel3 != null) {
-            label3 = LegacyComponentSerializer.legacySection().serialize(clabel3);
-        }
+        String label1 = event.getLine(1);
+        String label2 = event.getLine(2);
+        String label3 = event.getLine(3);
 
         String fullLabel = label1 + " " + label2 + " " + label3;
 
@@ -133,7 +113,7 @@ public class SignWatcher implements Listener {
         Block block = event.getBlock();
         Vector3d pos = new Vector3d(block.getX(), block.getY(), block.getZ());
 
-        String id = "marker-" + pos.getX() + "-" + pos.getY() + "-" + pos.getZ();
+        String id = MARKER_ID_PREFIX + pos.getX() + "-" + pos.getY() + "-" + pos.getZ();
         MarkerContent markerContent = MarkerContent.builder()
                 .label1(label1)
                 .label2(label2)
@@ -146,8 +126,8 @@ public class SignWatcher implements Listener {
         featureProvider.getMarkerSet().get(block.getWorld()).put(id, marker);
 
         // ### Replace first line, with prefix, e.g. [map], to <marker> indicator
-        event.line(0, Component.text("> marker <"));
-        event.getPlayer().sendMessage(formatMessage("Marker <" + markerIcon.name() + "> successfully added at " + pos.getFloorX() + " " + pos.getFloorY() + " " + pos.getFloorZ()));
+        event.setLine(0, MARKER_PLACEHOLDER);
+        event.getPlayer().sendMessage(formatMessage(String.format(ADDED_TEMPLATE, markerIcon.name(), pos.getFloorX(), pos.getFloorY(), pos.getFloorZ())));
     }
 
     /**
@@ -167,7 +147,7 @@ public class SignWatcher implements Listener {
         if (set == null) return;
 
         Vector3d pos = new Vector3d(block.getX(), block.getY(), block.getZ());
-        String id = "marker-" + pos.getX() + "-" + pos.getY() + "-" + pos.getZ();
+        String id = MARKER_ID_PREFIX + pos.getX() + "-" + pos.getY() + "-" + pos.getZ();
 
         Marker marker = set.get(id);
         if (marker == null) return;
@@ -180,7 +160,7 @@ public class SignWatcher implements Listener {
      * Builds the HTML content for a marker's detail popup using the provided information.
      *
      * @param content {@link MarkerContent} object containing label lines, position, timestamp and author
-     * @return
+     * @return HTML string suitable for use as the marker detail content (ready to be passed to BlueMap)
      */
     private String buildMarkerContent(MarkerContent content) {
         return String.format(HTML_TEMPLATE,
@@ -198,9 +178,10 @@ public class SignWatcher implements Listener {
      * Formats a message using MiniMessage/Legacy templates for player feedback.
      *
      * @param message the message text to format
-     * @return an Adventure {@link Component} ready to send to a player
+     * @return an Adventure {@link String} ready to send to a player
      */
-    private Component formatMessage(String message) {
-        return MiniMessage.miniMessage().deserialize(String.format(ADDED_TEMPLATE, message));
+    private String formatMessage(String message) {
+        return LegacyComponentSerializer.legacySection()
+                .serialize(MiniMessage.miniMessage().deserialize(String.format(MSG_PREFIX, message)));
     }
 }

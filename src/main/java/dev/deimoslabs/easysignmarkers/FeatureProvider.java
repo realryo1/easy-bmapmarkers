@@ -15,6 +15,12 @@ import java.util.logging.Logger;
  */
 public interface FeatureProvider {
 
+    /**
+     * Returns the underlying Bukkit {@link Plugin} instance for use by helpers that need
+     * direct access to plugin context (scheduler, data folder, plugin description, etc.).
+     *
+     * @return the plugin instance
+     */
     Plugin getPlugin();
 
     /**
