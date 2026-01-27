@@ -1,4 +1,7 @@
-# EasyBMSignMarkers
+
+## EasyBMSignMarkers
+
+![plugin_icon](Icon_EasyBMSignMarkers.png)
 
 The idea is simple - you put a sign in the game, and you can see it on your BlueMap.
 

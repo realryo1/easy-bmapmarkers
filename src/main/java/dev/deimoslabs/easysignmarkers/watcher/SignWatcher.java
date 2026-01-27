@@ -6,7 +6,7 @@ import com.flowpowered.math.vector.Vector3d;
 import de.bluecolored.bluemap.api.markers.Marker;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
-import dev.deimoslabs.easysignmarkers.SignMarkers;
+import dev.deimoslabs.easysignmarkers.FeatureProvider;
 import dev.deimoslabs.easysignmarkers.helpers.MarkerIcon;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -22,36 +22,51 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.logging.Logger;
 
+import static dev.deimoslabs.easysignmarkers.Constants.*;
+
+/**
+ * Listener that watches for sign creation and destruction events and manages
+ * corresponding BlueMap markers based on sign contents.
+ * Behavior summary:
+ * - When a player writes a sign with a recognized icon tag on the first line (e.g. "[map]")
+ * the listener will attempt to create a POI marker on BlueMap using the chosen icon and
+ * the text from lines 1-3 as the marker label/details.
+ * - When a sign is broken, the listener will remove the marker with the corresponding
+ * coordinate-based id from the marker set for that world.
+ */
 public class SignWatcher implements Listener {
 
+    /**
+     * FeatureProvider used to access plugin-level facilities:
+     * - BlueMap webroot path (for icons)
+     * - plugin {@link java.util.logging.Logger}
+     * - the central map of {@link org.bukkit.World} -> {@link de.bluecolored.bluemap.api.markers.MarkerSet}
+     */
+    private final FeatureProvider featureProvider;
 
-    private final static String IMG_PATH = "markers/";
-    private final static String REMOVED_TEMPLATE = "Marker successfully removed at %d %d %d";
-    private final static String ADDED_TEMPLATE = "<green>[EasyBMSignMarkers] %s</green>";
-    private final static String HTML_TEMPLATE = """
-            <div style='
-                padding: 10px;\s
-                text-align: center;\s
-                line-height: 1.4;\s
-                font-family: sans-serif;
-                min-width: 150px;
-            '>
-                <div style='color: #FFFFFF; font-size: 1.1em;'>%s</div>
-                <div style='color: #FFFFFF; font-size: 1.1em;'>%s</div>
-                <div style='color: #FFFFFF; font-size: 1.1em;'>%s</div>
-            </div>
-            """;
-    private final Logger logger;
-    private final Path webRoot;
-
-    public SignWatcher(Logger logger, Path webRoot) {
-        this.logger = logger;
-        this.webRoot = webRoot;
+    /**
+     * Constructs a SignWatcher using the provided FeatureProvider to access plugin features.
+     *
+     * @param featureProvider provider exposing BlueMap webroot, logger and marker map
+     */
+    public SignWatcher(FeatureProvider featureProvider) {
+        this.featureProvider = featureProvider;
     }
 
+    /**
+     * Handles sign change events (player writes a sign).
+     * <p>
+     * Expected workflow:
+     * - Reads the first line and attempts to match an icon token (e.g. "[map]").
+     * - If an icon is found and its image exists in BlueMap's webroot, constructs a POI marker
+     * using the sign's position and lines 1-3 as label/detail.
+     * - Stores the marker in the marker map under an id built from the block coordinates.
+     * - Replaces the first line of the sign with a marker indicator and notifies the player.
+     * If image reading or file access fails, the error is logged and the marker is not created.
+     *
+     * @param event the SignChangeEvent triggered when a player finalizes sign text
+     */
     @EventHandler
     public void onSignWrite(SignChangeEvent event) {
 
@@ -64,9 +79,6 @@ public class SignWatcher implements Listener {
             String line0 = LegacyComponentSerializer.legacySection().serialize(header);
             if (line0.startsWith("[") && line0.endsWith("]")) {
                 markerIcon = MarkerIcon.match(line0);
-                if (markerIcon == null) {
-                    markerIcon = MarkerIcon.map;
-                }
                 iconLabel = markerIcon.name();
             } else {
                 return;
@@ -76,8 +88,8 @@ public class SignWatcher implements Listener {
         }
 
         // ### Getting the actual image file for a marker
-        String icon = IMG_PATH + iconLabel + ".png";
-        File iconFile = new File(webRoot + "/" + icon);
+        String icon = IMAGE_PATH + iconLabel + ".png";
+        File iconFile = new File(featureProvider.getWebRoot() + "/" + icon);
         if (!iconFile.exists()) return;
 
         Vector2i anchor;
@@ -87,7 +99,7 @@ public class SignWatcher implements Listener {
             int height = image.getHeight();
             anchor = new Vector2i(height / 2, width / 2);
         } catch (IOException e) {
-            logger.warning(String.format("Something wrong with image %s, details: %s", iconFile.getPath(), e.getMessage()));
+            featureProvider.getLogger().warning(String.format("Something wrong with image %s, details: %s", iconFile.getPath(), e.getMessage()));
             return;
         }
 
@@ -122,27 +134,36 @@ public class SignWatcher implements Listener {
         Vector3d pos = new Vector3d(block.getX(), block.getY(), block.getZ());
 
         String id = "marker-" + pos.getX() + "-" + pos.getY() + "-" + pos.getZ();
-        POIMarker marker = POIMarker.builder()
+        MarkerContent markerContent = MarkerContent.builder()
+                .label1(label1)
+                .label2(label2)
+                .label3(label3)
                 .position(pos)
-                .label(fullLabel)
-                .icon(icon, anchor)
-                .maxDistance(100000)
-                .detail(buildMarkerContent(label1, label2, label3))
+                .author(event.getPlayer().getName())
                 .build();
-        SignMarkers.markerSet.get(block.getWorld()).put(id, marker);
+        String markerDetails = buildMarkerContent(markerContent);
+        POIMarker marker = POIMarker.builder().position(pos).label(fullLabel).icon(icon, anchor).maxDistance(100000).detail(markerDetails).build();
+        featureProvider.getMarkerSet().get(block.getWorld()).put(id, marker);
 
         // ### Replace first line, with prefix, e.g. [map], to <marker> indicator
         event.line(0, Component.text("> marker <"));
-        event.getPlayer().sendMessage(formatMessage("Marker <" + markerIcon.name() + "> successfully added at " + pos.getX() + " " + pos.getY() + " " + pos.getZ()));
+        event.getPlayer().sendMessage(formatMessage("Marker <" + markerIcon.name() + "> successfully added at " + pos.getFloorX() + " " + pos.getFloorY() + " " + pos.getFloorZ()));
     }
 
+    /**
+     * Handles block break events to remove markers when signs are destroyed.
+     * If the broken block is a sign and a marker with the corresponding coordinate-based id
+     * exists in the marker set, the marker will be removed and the player will be notified.
+     *
+     * @param event the BlockBreakEvent representing the block destruction
+     */
     @EventHandler
     public void onSignDestroy(BlockBreakEvent event) {
 
         Block block = event.getBlock();
         if (!(block.getState() instanceof Sign)) return;
 
-        MarkerSet set = SignMarkers.markerSet.get(block.getWorld());
+        MarkerSet set = featureProvider.getMarkerSet().get(block.getWorld());
         if (set == null) return;
 
         Vector3d pos = new Vector3d(block.getX(), block.getY(), block.getZ());
@@ -152,16 +173,33 @@ public class SignWatcher implements Listener {
         if (marker == null) return;
         set.remove(id);
 
-        event.getPlayer().sendMessage(formatMessage(String.format(REMOVED_TEMPLATE,
-                (int) pos.getX(),
-                (int) pos.getY(),
-                (int) pos.getZ())));
+        event.getPlayer().sendMessage(formatMessage(String.format(REMOVED_TEMPLATE, (int) pos.getX(), (int) pos.getY(), (int) pos.getZ())));
     }
 
-    private String buildMarkerContent(String label1, String label2, String label3) {
-        return String.format(HTML_TEMPLATE, label1, label2, label3);
+    /**
+     * Builds the HTML content for a marker's detail popup using the provided information.
+     *
+     * @param content {@link MarkerContent} object containing label lines, position, timestamp and author
+     * @return
+     */
+    private String buildMarkerContent(MarkerContent content) {
+        return String.format(HTML_TEMPLATE,
+                content.getLabel1(),
+                content.getLabel2(),
+                content.getLabel3(),
+                content.getX(),
+                content.getY(),
+                content.getZ(),
+                content.getTimestamp(),
+                content.getAuthor());
     }
 
+    /**
+     * Formats a message using MiniMessage/Legacy templates for player feedback.
+     *
+     * @param message the message text to format
+     * @return an Adventure {@link Component} ready to send to a player
+     */
     private Component formatMessage(String message) {
         return MiniMessage.miniMessage().deserialize(String.format(ADDED_TEMPLATE, message));
     }

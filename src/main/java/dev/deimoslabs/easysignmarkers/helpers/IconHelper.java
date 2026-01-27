@@ -7,11 +7,27 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
 
+import static dev.deimoslabs.easysignmarkers.Constants.IMAGE_PATH;
+import static dev.deimoslabs.easysignmarkers.Constants.RES_FOLDER;
+
+/**
+ * Small utility that copies marker icons bundled inside the plugin JAR into the BlueMap webroot
+ * so BlueMap can serve them as marker icons.
+ */
 public class IconHelper {
 
-    private static final String IMAGE_PATH = "markers/";
-    private static final String RES_FOLDER = IMAGE_PATH + "dynmap";
 
+    /**
+     * Copies PNG marker resources from the plugin JAR (inside {@code RES_FOLDER}) into the
+     * target BlueMap webroot under {@code IMAGE_PATH}. Existing files are not overwritten.
+     *
+     * @param jar the plugin JAR file to read resources from
+     * @param webRoot the BlueMap webroot path to copy files into
+     * @param logger logger used to report warnings and errors
+     * @return true when copy operation completed (skipping existing files), false on failure to create directories
+     * @throws IOException when reading from the JAR or writing files fails
+     */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static boolean copyMarkers(JarFile jar, Path webRoot, Logger logger) throws IOException {
 
         File targetRoot = webRoot.resolve(IMAGE_PATH).toFile();
