@@ -1,5 +1,5 @@
 
-## EasyBMSignMarkers
+## Easy BlueMap Sign Markers
 
 ![plugin_icon](Icon_EasyBMSignMarkers.png)
 
