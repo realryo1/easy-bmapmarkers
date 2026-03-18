@@ -16,6 +16,19 @@ Probably works on: Folia / Spigot / Purpur
 You need to have **BlueMap** installed on your server. The plugin depends on it.
 If you already have **BlueMap**, put the jar file into `plugins` folder on your server... and that's it!
 
+## Config
+You can configure the tag wrappers used on sign line 1 in `plugins/EasyBMSignMarkers/config.yml`.
+
+- `startprefix`: start wrapper for sign tags
+- `endprefix`: end wrapper for sign tags
+
+Defaults:
+
+- `startprefix: "="`
+- `endprefix: "="`
+
+With defaults, valid examples are `=map=`, `=BMLine=`, `=BMLineUnder=`.
+
 ## Edit mode (show hidden marker signs)
 By default, marker signs are hidden. You can reveal them per-player only while editing.
 
@@ -29,13 +42,14 @@ Behavior:
 ## How to use
 Place any sign in the game. Fill the sign as follows:
 
-- **1st line**: `[marker_icon_name]` (please see [Marker names](#marker-names) for available name tags)
+- **1st line**: `=marker_icon_name=` (please see [Marker names](#marker-names) for available name tags)
 - **2nd line:** text
 - **3rd line:** text
 - **4th line:** text
 
-First line **MUST** be filled. If the 1st line does not contain a valid name, but still the brackets `[` and `]` are being used - the fallback value will be assigned - `[map]` - and marker will be created anyway.
+First line **MUST** be filled. If the 1st line does not contain a valid name, but still uses configured wrappers, the fallback value `map` is assigned.
 At least one of lines 2-4 must contain text. If all are empty, the marker is not created.
+Do not put spaces inside wrapped tags (valid with defaults: `=map=`, invalid: `= map =`).
 
 ## Example
 Below example will create marker on your map with `star` icon assigned.
@@ -59,7 +73,7 @@ You can also create a line marker by linking multiple signs.
 
 Fill signs as follows:
 
-- **1st line**: `[BMLine]` or `[BMLineUnder]`
+- **1st line**: `=BMLine=` or `=BMLineUnder=`
 - **2nd line**: line ID (e.g. `road-main`)
 - **3rd line**: order number (e.g. `1`, `2`, `3`)
 - **4th line**: optional color code (`#RRGGBB` or `#RRGGBBAA`)
@@ -70,8 +84,8 @@ How it works:
 - If a line has **2 or more points**, a BlueMap `LineMarker` is rendered.
 - If a point-sign is broken and the line drops below 2 points, the line marker is removed.
 - Rendering mode is decided by the first point (lowest order):
-- If the first point is `[BMLineUnder]`, the whole line is rendered as underground style (not hidden by terrain).
-- If the first point is `[BMLine]`, the whole line uses normal style.
+- If the first point is `=BMLineUnder=` (with default wrappers), the whole line is rendered as underground style (not hidden by terrain).
+- If the first point is `=BMLine=` (with default wrappers), the whole line uses normal style.
 - Line color is also decided by the first point (lowest order):
 - If first point line 4 has `#RRGGBB`, the whole line uses that RGB with default alpha.
 - If first point line 4 has `#RRGGBBAA`, the whole line uses that RGBA (including alpha override).
@@ -84,7 +98,7 @@ Notes:
 Notes:
 
 - There are currently no other plugin commands.
-- Existing sign workflows (`[icon]`, `[BMLine]`, `[BMLineUnder]`) are event-driven and do not require commands.
+- Existing sign workflows (`=icon=`, `=BMLine=`, `=BMLineUnder=` with default wrappers) are event-driven and do not require commands.
 
 ## Permissions
 

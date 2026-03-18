@@ -23,6 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
 
+import static dev.deimoslabs.easysignmarkers.Constants.CONFIG_TAG_END_PREFIX;
+import static dev.deimoslabs.easysignmarkers.Constants.CONFIG_TAG_START_PREFIX;
+import static dev.deimoslabs.easysignmarkers.Constants.DEFAULT_TAG_END_PREFIX;
+import static dev.deimoslabs.easysignmarkers.Constants.DEFAULT_TAG_START_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.EDIT_MODE_COMMAND;
 import static dev.deimoslabs.easysignmarkers.Constants.MODRINTH_SLUG;
 
@@ -78,11 +82,15 @@ public class SignMarkers extends JavaPlugin implements FeatureProvider {
     @Override
     public void onEnable() {
         logger = getLogger();
+        saveDefaultConfig();
+        String tagStartPrefix = readConfiguredPrefix(CONFIG_TAG_START_PREFIX, DEFAULT_TAG_START_PREFIX);
+        String tagEndPrefix = readConfiguredPrefix(CONFIG_TAG_END_PREFIX, DEFAULT_TAG_END_PREFIX);
+
         new UpdateNotifier(this, MODRINTH_SLUG).checkForUpdates();
         markerHelper = new MarkerHelper(this);
         lineStore = new LineStore(this);
         lineMarkerManager = new LineMarkerManager(this, lineStore);
-        markerVisibilityService = new MarkerVisibilityService(this, lineStore);
+        markerVisibilityService = new MarkerVisibilityService(this, lineStore, tagStartPrefix, tagEndPrefix);
         EditModeCommand editModeCommand = new EditModeCommand(markerVisibilityService);
         if (getCommand(EDIT_MODE_COMMAND) != null) {
             getCommand(EDIT_MODE_COMMAND).setExecutor(editModeCommand);
@@ -97,7 +105,7 @@ public class SignMarkers extends JavaPlugin implements FeatureProvider {
                         JarFile jar = new JarFile(this.getFile());
                         webRoot = api.getWebApp().getWebRoot();
                         boolean result = IconHelper.copyMarkers(jar, webRoot, logger);
-                        Bukkit.getPluginManager().registerEvents(new SignWatcher(this, lineMarkerManager, markerVisibilityService), this);
+                        Bukkit.getPluginManager().registerEvents(new SignWatcher(this, lineMarkerManager, markerVisibilityService, tagStartPrefix, tagEndPrefix), this);
                         lineMarkerManager.rebuildAllLines();
                         markerVisibilityService.applyVisibilityToAllOnlinePlayers();
                         logger.info("Plugin init status: " + (result ? "ok!" : "failed!"));
@@ -151,5 +159,14 @@ public class SignMarkers extends JavaPlugin implements FeatureProvider {
     @Override
     public Map<World, MarkerSet> getMarkerSet() {
         return this.markerSet;
+    }
+
+    private String readConfiguredPrefix(String key, String fallback) {
+        String value = getConfig().getString(key, fallback);
+        if (value == null || value.isBlank()) {
+            logger.warning("Invalid config value for '" + key + "'. Falling back to default.");
+            return fallback;
+        }
+        return value;
     }
 }

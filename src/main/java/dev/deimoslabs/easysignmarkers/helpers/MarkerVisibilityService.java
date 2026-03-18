@@ -14,7 +14,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.block.BlockState;
 
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Set;
@@ -23,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_TAG;
-import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_UNDER_TAG;
+import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_KEYWORD;
+import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_UNDER_KEYWORD;
 import static dev.deimoslabs.easysignmarkers.Constants.MARKER_ID_PREFIX;
 
 /**
@@ -36,11 +35,15 @@ public class MarkerVisibilityService {
 
     private final FeatureProvider featureProvider;
     private final LineStore lineStore;
+    private final String lineTag;
+    private final String lineUnderTag;
     private final Set<UUID> editModePlayers = ConcurrentHashMap.newKeySet();
 
-    public MarkerVisibilityService(FeatureProvider featureProvider, LineStore lineStore) {
+    public MarkerVisibilityService(FeatureProvider featureProvider, LineStore lineStore, String startPrefix, String endPrefix) {
         this.featureProvider = featureProvider;
         this.lineStore = lineStore;
+        this.lineTag = startPrefix + BM_LINE_KEYWORD + endPrefix;
+        this.lineUnderTag = startPrefix + BM_LINE_UNDER_KEYWORD + endPrefix;
     }
 
     public boolean setEditMode(Player player, boolean enabled) {
@@ -108,10 +111,7 @@ public class MarkerVisibilityService {
         if (!(block.getState() instanceof Sign sign)) return false;
 
         String line0 = sign.getSide(Side.FRONT).getLine(0);
-        String normalized = line0 == null ? "" : line0.trim().toLowerCase(Locale.ROOT);
-
-        if (normalized.equals(BM_LINE_TAG.toLowerCase(Locale.ROOT))
-                || normalized.equals(BM_LINE_UNDER_TAG.toLowerCase(Locale.ROOT))) {
+        if (line0 != null && (line0.equalsIgnoreCase(lineTag) || line0.equalsIgnoreCase(lineUnderTag))) {
             return true;
         }
 

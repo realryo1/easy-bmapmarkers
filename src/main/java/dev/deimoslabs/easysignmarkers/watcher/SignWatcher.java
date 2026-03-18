@@ -38,6 +38,11 @@ import static dev.deimoslabs.easysignmarkers.Constants.*;
  */
 public class SignWatcher implements Listener {
 
+    private final String startPrefix;
+    private final String endPrefix;
+    private final String lineTag;
+    private final String lineUnderTag;
+
     /**
      * FeatureProvider used to access plugin-level facilities:
      * - BlueMap webroot path (for icons)
@@ -55,10 +60,14 @@ public class SignWatcher implements Listener {
      *
      * @param featureProvider provider exposing BlueMap webroot, logger and marker map
      */
-    public SignWatcher(FeatureProvider featureProvider, LineMarkerManager lineMarkerManager, MarkerVisibilityService markerVisibilityService) {
+    public SignWatcher(FeatureProvider featureProvider, LineMarkerManager lineMarkerManager, MarkerVisibilityService markerVisibilityService, String startPrefix, String endPrefix) {
         this.featureProvider = featureProvider;
         this.lineMarkerManager = lineMarkerManager;
         this.markerVisibilityService = markerVisibilityService;
+        this.startPrefix = startPrefix;
+        this.endPrefix = endPrefix;
+        this.lineTag = startPrefix + BM_LINE_KEYWORD + endPrefix;
+        this.lineUnderTag = startPrefix + BM_LINE_UNDER_KEYWORD + endPrefix;
     }
 
     /**
@@ -78,8 +87,8 @@ public class SignWatcher implements Listener {
     public void onSignWrite(SignChangeEvent event) {
 
         final String line0 = event.getLine(0);
-        if (line0 != null && (line0.equalsIgnoreCase(BM_LINE_TAG) || line0.equalsIgnoreCase(BM_LINE_UNDER_TAG))) {
-            handleLineSign(event, line0.equalsIgnoreCase(BM_LINE_UNDER_TAG));
+        if (line0 != null && (line0.equalsIgnoreCase(lineTag) || line0.equalsIgnoreCase(lineUnderTag))) {
+            handleLineSign(event, line0.equalsIgnoreCase(lineUnderTag));
             return;
         }
 
@@ -87,8 +96,8 @@ public class SignWatcher implements Listener {
         MarkerIcon markerIcon;
 
         // ### Mapping sign's line 0 to specific marker type (translates to icon)
-        if (line0 != null && !line0.isBlank() && line0.startsWith("[") && line0.endsWith("]")) {
-            markerIcon = MarkerIcon.match(line0);
+        if (line0 != null && isCompactWrappedToken(line0)) {
+            markerIcon = MarkerIcon.matchToken(extractWrappedToken(line0));
             iconLabel = markerIcon.name();
         } else {
             return;
@@ -250,5 +259,23 @@ public class SignWatcher implements Listener {
     private String formatMessage(String message) {
         return LegacyComponentSerializer.legacySection()
                 .serialize(MiniMessage.miniMessage().deserialize(String.format(MSG_PREFIX, message)));
+    }
+
+    private boolean isCompactWrappedToken(String raw) {
+        if (!raw.startsWith(startPrefix) || !raw.endsWith(endPrefix)) return false;
+        String token = extractWrappedToken(raw);
+        if (token.isBlank()) return false;
+
+        for (int i = 0; i < token.length(); i++) {
+            if (Character.isWhitespace(token.charAt(i))) return false;
+        }
+        return true;
+    }
+
+    private String extractWrappedToken(String raw) {
+        int begin = startPrefix.length();
+        int end = raw.length() - endPrefix.length();
+        if (end < begin) return "";
+        return raw.substring(begin, end);
     }
 }

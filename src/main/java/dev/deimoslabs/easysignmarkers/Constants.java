@@ -36,11 +36,15 @@ public class Constants {
     /** Label prefix displayed in BlueMap for line markers. */
     public final static String LINE_MARKER_LABEL_PREFIX = "Line: ";
 
-    /** Sign tag for line markers. */
-    public final static String BM_LINE_TAG = "[BMLine]";
+    /** Config keys and defaults for sign-tag wrappers. */
+    public final static String CONFIG_TAG_START_PREFIX = "startprefix";
+    public final static String CONFIG_TAG_END_PREFIX = "endprefix";
+    public final static String DEFAULT_TAG_START_PREFIX = "=";
+    public final static String DEFAULT_TAG_END_PREFIX = "=";
 
-    /** Sign tag for underground line markers (always visible through terrain). */
-    public final static String BM_LINE_UNDER_TAG = "[BMLineUnder]";
+    /** Sign tag keywords for line markers (wrapped by configured prefix/suffix). */
+    public final static String BM_LINE_KEYWORD = "BMLine";
+    public final static String BM_LINE_UNDER_KEYWORD = "BMLineUnder";
 
     /**
      * Label prefix displayed in BlueMap for sign markers.

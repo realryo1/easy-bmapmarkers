@@ -1,0 +1,4 @@
+# Tag wrapper configuration for sign line 1.
+# Example with defaults: =map=, =BMLine=, =BMLineUnder=
+startprefix: "="
+endprefix: "="

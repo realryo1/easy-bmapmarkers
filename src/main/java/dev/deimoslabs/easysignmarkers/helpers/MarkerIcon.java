@@ -99,8 +99,18 @@ public enum MarkerIcon {
      * @return the matching {@link MarkerIcon} constant, or if cannot match - defaults to {@link MarkerIcon#map}
      */
     public static MarkerIcon match(String name) {
+        return matchToken(name.replaceAll("^\\[(.*)]$", "$1"));
+    }
+
+    /**
+     * Matches a raw token (without wrappers) to a marker icon.
+     *
+     * @param token icon token, for example "map"
+     * @return matching icon or {@link MarkerIcon#map} as fallback
+     */
+    public static MarkerIcon matchToken(String token) {
         MarkerIcon icon = MarkerIcon.map;
-        String result = name.replaceAll("^\\[(.*)]$", "$1").toLowerCase();
+        String result = token.toLowerCase();
         try {
             icon = MarkerIcon.valueOf(result);
         } catch (IllegalArgumentException ignored) {
