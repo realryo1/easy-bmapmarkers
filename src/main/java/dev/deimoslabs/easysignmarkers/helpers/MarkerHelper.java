@@ -13,7 +13,9 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +52,7 @@ public class MarkerHelper {
      * Performs initialization: creates files, loads marker sets for all worlds and registers them with BlueMap.
      */
     private void init() {
+        migrateLegacyPluginFolderIfExists();
         createFiles();
         final List<World> worlds = Bukkit.getWorlds();
         for (World world : worlds) {
@@ -160,9 +163,6 @@ public class MarkerHelper {
 
     private void migrateLegacyJsonIfExists(World world) {
         File legacyFile = worldLegacyMarkerJsonFile(world);
-        if (!legacyFile.exists()) {
-            copyLegacyJsonFromOldPluginFolder(world, legacyFile);
-        }
         if (!legacyFile.exists()) return;
 
         try (FileReader reader = new FileReader(legacyFile)) {
@@ -182,18 +182,60 @@ public class MarkerHelper {
         }
     }
 
-    private void copyLegacyJsonFromOldPluginFolder(World world, File destinationLegacyFile) {
-        File sourceLegacyFile = worldLegacyMarkerJsonFileFromOldPluginFolder(world);
-        if (!sourceLegacyFile.exists()) return;
+    private void migrateLegacyPluginFolderIfExists() {
+        File pluginsFolder = plugin.getDataFolder().getParentFile();
+        if (pluginsFolder == null) return;
+
+        File oldPluginFolder = new File(pluginsFolder, LEGACY_PLUGIN_DATA_FOLDER);
+        if (!oldPluginFolder.exists() || !oldPluginFolder.isDirectory()) return;
+
+        Path sourcePath = oldPluginFolder.toPath();
+        Path targetPath = plugin.getDataFolder().toPath();
 
         try {
-            File parent = destinationLegacyFile.getParentFile();
-            if (parent != null && !parent.exists()) parent.mkdirs();
+            Files.createDirectories(targetPath);
 
-            Files.copy(sourceLegacyFile.toPath(), destinationLegacyFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            logger.info("Copied legacy marker JSON from old plugin folder: " + sourceLegacyFile.getPath());
+            try (var paths = Files.walk(sourcePath)) {
+                paths.forEach(path -> copyPath(path, sourcePath, targetPath));
+            }
+
+            deleteDirectoryRecursively(sourcePath);
+            logger.info("Migrated legacy plugin folder and removed source: " + oldPluginFolder.getPath());
         } catch (IOException ex) {
-            logger.log(Level.WARNING, "Problem while copying legacy marker JSON from old plugin folder!", ex);
+            logger.log(Level.WARNING, "Problem while migrating legacy plugin folder!", ex);
+        }
+    }
+
+    private void copyPath(Path sourcePath, Path basePath, Path targetBasePath) {
+        Path relative = basePath.relativize(sourcePath);
+        Path destination = targetBasePath.resolve(relative);
+
+        try {
+            if (Files.isDirectory(sourcePath)) {
+                Files.createDirectories(destination);
+                return;
+            }
+
+            Path parent = destination.getParent();
+            if (parent != null) Files.createDirectories(parent);
+            Files.copy(sourcePath, destination, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    private void deleteDirectoryRecursively(Path directoryPath) throws IOException {
+        try (var paths = Files.walk(directoryPath)) {
+            paths.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ex) {
+                            throw new UncheckedIOException(ex);
+                        }
+                    });
+        } catch (UncheckedIOException ex) {
+            throw ex.getCause();
         }
     }
 
@@ -205,17 +247,6 @@ public class MarkerHelper {
     private File worldLegacyMarkerJsonFile(World world) {
         String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
         return new File(plugin.getDataFolder(), name);
-    }
-
-    private File worldLegacyMarkerJsonFileFromOldPluginFolder(World world) {
-        String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
-        File pluginsFolder = plugin.getDataFolder().getParentFile();
-        if (pluginsFolder == null) {
-            return new File(plugin.getDataFolder(), name);
-        }
-
-        File oldPluginFolder = new File(pluginsFolder, LEGACY_PLUGIN_DATA_FOLDER);
-        return new File(oldPluginFolder, name);
     }
 
 }
