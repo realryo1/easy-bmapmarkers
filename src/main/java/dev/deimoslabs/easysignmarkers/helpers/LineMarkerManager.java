@@ -79,8 +79,12 @@ public class LineMarkerManager {
         }
 
         List<Vector3d> points = orderedLocations.stream()
-                .map(location -> new Vector3d(location.getX(), location.getY(), location.getZ()))
-                .collect(Collectors.toList());
+            .map(location -> new Vector3d(
+                location.getX() + 0.5D,
+                location.getY() + 0.5D,
+                location.getZ() + 0.5D
+            ))
+            .collect(Collectors.toList());
 
         boolean underMode = lineStore.isUnderMode(world, lineId);
         boolean depthTest = underMode ? LINE_UNDER_DEPTH_TEST : LINE_DEPTH_TEST;
