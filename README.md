@@ -34,8 +34,6 @@ Place any sign in the game. Fill the sign as follows:
 - **3rd line:** text
 - **4th line:** text
 
-**Note:** after adding the marker, the first line will change to `> marker <` in order to indicate that the given sign acts as marker. The intention here is to ensure players will not remove markers by accident.
-
 First line **MUST** be filled. If the 1st line does not contain a valid name, but still the brackets `[` and `]` are being used - the fallback value will be assigned - `[map]` - and marker will be created anyway.
 At least one of lines 2-4 must contain text. If all are empty, the marker is not created.
 
@@ -45,8 +43,6 @@ Below example will create marker on your map with `star` icon assigned.
 First, you build the sign
 
 ![sign1](example1.png)
-
-After you complete it, the first line will switch to `> marker <`. This indicates, that placing the marker was successful.
 
 ![sign2](example2.png)
 
@@ -66,7 +62,7 @@ Fill signs as follows:
 - **1st line**: `[BMLine]` or `[BMLineUnder]`
 - **2nd line**: line ID (e.g. `road-main`)
 - **3rd line**: order number (e.g. `1`, `2`, `3`)
-- **4th line**: optional (ignored for now)
+- **4th line**: optional color code (`#RRGGBB` or `#RRGGBBAA`)
 
 How it works:
 
@@ -74,20 +70,16 @@ How it works:
 - If a line has **2 or more points**, a BlueMap `LineMarker` is rendered.
 - If a point-sign is broken and the line drops below 2 points, the line marker is removed.
 - Rendering mode is decided by the first point (lowest order):
-- If the first point is `[BMLineUnder]`, the whole line is rendered as underground style (transparent + not hidden by terrain).
+- If the first point is `[BMLineUnder]`, the whole line is rendered as underground style (not hidden by terrain).
 - If the first point is `[BMLine]`, the whole line uses normal style.
+- Line color is also decided by the first point (lowest order):
+- If first point line 4 has `#RRGGBB`, the whole line uses that RGB with default alpha.
+- If first point line 4 has `#RRGGBBAA`, the whole line uses that RGBA (including alpha override).
+- Invalid color values fall back to default line color.
 
 Notes:
 
 - Line IDs are scoped per world.
-- Line-point data is persisted per world in plugin data files (`line-data-<world>.yml`).
-- Style (color/width/depth-test) is currently fixed in code and can be extended later.
-
-## Commands
-
-| Command | Description | Usage |
-|---|---|---|
-| `/bmedit` | Toggle per-player marker-sign edit mode | `/bmedit [on|off|toggle]` |
 
 Notes:
 
@@ -98,6 +90,7 @@ Notes:
 
 | Permission | Default | Description |
 |---|---|---|
+
 | `easybmsignmarkers.edit` | op | Allows using `/bmedit` to show hidden marker signs |
 
 Notes:

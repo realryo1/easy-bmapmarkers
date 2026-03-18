@@ -32,6 +32,7 @@ public class LineStore {
     private final FeatureProvider featureProvider;
     private final Map<World, Map<String, TreeMap<Integer, Location>>> linesByWorld = new ConcurrentHashMap<>();
     private final Map<World, Map<String, TreeMap<Integer, Boolean>>> underFlagsByWorld = new ConcurrentHashMap<>();
+    private final Map<World, Map<String, TreeMap<Integer, String>>> colorByWorld = new ConcurrentHashMap<>();
 
     public LineStore(FeatureProvider featureProvider) {
         this.featureProvider = featureProvider;
@@ -56,12 +57,14 @@ public class LineStore {
             createFileIfMissing(file);
             linesByWorld.put(world, new HashMap<>());
             underFlagsByWorld.put(world, new HashMap<>());
+            colorByWorld.put(world, new HashMap<>());
             return;
         }
 
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
         Map<String, TreeMap<Integer, Location>> worldData = new HashMap<>();
         Map<String, TreeMap<Integer, Boolean>> worldUnderData = new HashMap<>();
+        Map<String, TreeMap<Integer, String>> worldColorData = new HashMap<>();
 
         ConfigurationSection linesSection = yaml.getConfigurationSection("lines");
         if (linesSection != null) {
@@ -71,6 +74,7 @@ public class LineStore {
 
                 TreeMap<Integer, Location> ordered = new TreeMap<>();
                 TreeMap<Integer, Boolean> underFlags = new TreeMap<>();
+                TreeMap<Integer, String> colors = new TreeMap<>();
                 for (String orderKey : lineSection.getKeys(false)) {
                     int order;
                     try {
@@ -85,17 +89,20 @@ public class LineStore {
                     double z = yaml.getDouble(basePath + ".z");
                     ordered.put(order, new Location(world, x, y, z));
                     underFlags.put(order, yaml.getBoolean(basePath + ".under", false));
+                    colors.put(order, yaml.getString(basePath + ".color", ""));
                 }
 
                 if (!ordered.isEmpty()) {
                     worldData.put(lineId, ordered);
                     worldUnderData.put(lineId, underFlags);
+                    worldColorData.put(lineId, colors);
                 }
             }
         }
 
         linesByWorld.put(world, worldData);
         underFlagsByWorld.put(world, worldUnderData);
+        colorByWorld.put(world, worldColorData);
     }
 
     public synchronized void saveWorld(World world) {
@@ -105,6 +112,7 @@ public class LineStore {
         YamlConfiguration yaml = new YamlConfiguration();
         Map<String, TreeMap<Integer, Location>> worldData = linesByWorld.getOrDefault(world, Collections.emptyMap());
         Map<String, TreeMap<Integer, Boolean>> worldUnderData = underFlagsByWorld.getOrDefault(world, Collections.emptyMap());
+        Map<String, TreeMap<Integer, String>> worldColorData = colorByWorld.getOrDefault(world, Collections.emptyMap());
 
         for (Map.Entry<String, TreeMap<Integer, Location>> lineEntry : worldData.entrySet()) {
             String lineId = lineEntry.getKey();
@@ -116,6 +124,8 @@ public class LineStore {
                 yaml.set(basePath + ".z", loc.getZ());
                 Boolean under = worldUnderData.getOrDefault(lineId, new TreeMap<>()).getOrDefault(pointEntry.getKey(), false);
                 yaml.set(basePath + ".under", under);
+                String color = worldColorData.getOrDefault(lineId, new TreeMap<>()).getOrDefault(pointEntry.getKey(), "");
+                yaml.set(basePath + ".color", color);
             }
         }
 
@@ -126,7 +136,7 @@ public class LineStore {
         }
     }
 
-    public synchronized void put(World world, String lineId, int order, Location location, boolean under) {
+    public synchronized void put(World world, String lineId, int order, Location location, boolean under, String color) {
         Map<String, TreeMap<Integer, Location>> worldData = linesByWorld.computeIfAbsent(world, ignored -> new HashMap<>());
         TreeMap<Integer, Location> lineData = worldData.computeIfAbsent(lineId, ignored -> new TreeMap<>());
         lineData.put(order, location.clone());
@@ -134,6 +144,10 @@ public class LineStore {
         Map<String, TreeMap<Integer, Boolean>> worldUnderData = underFlagsByWorld.computeIfAbsent(world, ignored -> new HashMap<>());
         TreeMap<Integer, Boolean> lineUnderFlags = worldUnderData.computeIfAbsent(lineId, ignored -> new TreeMap<>());
         lineUnderFlags.put(order, under);
+
+        Map<String, TreeMap<Integer, String>> worldColorData = colorByWorld.computeIfAbsent(world, ignored -> new HashMap<>());
+        TreeMap<Integer, String> lineColors = worldColorData.computeIfAbsent(lineId, ignored -> new TreeMap<>());
+        lineColors.put(order, color == null ? "" : color.trim());
     }
 
     public synchronized List<Location> getOrderedLocations(World world, String lineId) {
@@ -159,6 +173,7 @@ public class LineStore {
         Set<String> touchedLineIds = new HashSet<>();
         List<String> emptyLineIds = new ArrayList<>();
         Map<String, TreeMap<Integer, Boolean>> worldUnderData = underFlagsByWorld.get(world);
+        Map<String, TreeMap<Integer, String>> worldColorData = colorByWorld.get(world);
 
         for (Map.Entry<String, TreeMap<Integer, Location>> lineEntry : worldData.entrySet()) {
             String lineId = lineEntry.getKey();
@@ -180,6 +195,12 @@ public class LineStore {
                     flags.keySet().retainAll(points.keySet());
                 }
             }
+            if (worldColorData != null) {
+                TreeMap<Integer, String> colors = worldColorData.get(lineId);
+                if (colors != null) {
+                    colors.keySet().retainAll(points.keySet());
+                }
+            }
 
             if (points.isEmpty()) {
                 emptyLineIds.add(lineId);
@@ -190,6 +211,9 @@ public class LineStore {
             worldData.remove(emptyLineId);
             if (worldUnderData != null) {
                 worldUnderData.remove(emptyLineId);
+            }
+            if (worldColorData != null) {
+                worldColorData.remove(emptyLineId);
             }
         }
 
@@ -243,5 +267,16 @@ public class LineStore {
 
         // Mode is determined by the smallest order point.
         return Boolean.TRUE.equals(lineUnderFlags.firstEntry().getValue());
+    }
+
+    public synchronized String getPrimaryColor(World world, String lineId) {
+        Map<String, TreeMap<Integer, String>> worldColorData = colorByWorld.get(world);
+        if (worldColorData == null) return "";
+
+        TreeMap<Integer, String> lineColors = worldColorData.get(lineId);
+        if (lineColors == null || lineColors.isEmpty()) return "";
+
+        String color = lineColors.firstEntry().getValue();
+        return color == null ? "" : color.trim();
     }
 }

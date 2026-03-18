@@ -60,14 +60,6 @@ public class Constants {
      */
     public final static String ADDED_TEMPLATE = "Marker <%s> successfully added at %d %d %d";
 
-    /**
-    * Placeholder text used in marker labels to indicate where the marker text goes.
-     */
-    public final static String MARKER_PLACEHOLDER = "> marker <";
-
-    /** Placeholder text used in line marker signs after successful parsing. */
-    public final static String LINE_MARKER_PLACEHOLDER = "> line <";
-
     /** Template shown when a line point is created or updated. */
     public final static String LINE_POINT_TEMPLATE = "Line <%s> point #%d registered at %d %d %d";
 
@@ -92,7 +84,6 @@ public class Constants {
 
     /** Style used when the first (lowest order) point is BMLineUnder. */
     public final static boolean LINE_UNDER_DEPTH_TEST = false;
-    public final static float LINE_UNDER_COLOR_ALPHA = 0.45f;
 
     /** Command and permission constants for marker edit mode. */
     public final static String EDIT_MODE_COMMAND = "bmedit";

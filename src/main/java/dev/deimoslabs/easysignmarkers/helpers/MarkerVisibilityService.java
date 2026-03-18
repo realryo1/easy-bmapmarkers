@@ -25,9 +25,7 @@ import java.util.regex.Pattern;
 
 import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_TAG;
 import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_UNDER_TAG;
-import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_PLACEHOLDER;
 import static dev.deimoslabs.easysignmarkers.Constants.MARKER_ID_PREFIX;
-import static dev.deimoslabs.easysignmarkers.Constants.MARKER_PLACEHOLDER;
 
 /**
  * Controls player-specific visibility of BlueMap marker signs.
@@ -110,13 +108,22 @@ public class MarkerVisibilityService {
         if (!(block.getState() instanceof Sign sign)) return false;
 
         String line0 = sign.getSide(Side.FRONT).getLine(0);
-        if (line0 == null) return false;
-        String normalized = line0.trim().toLowerCase(Locale.ROOT);
+        String normalized = line0 == null ? "" : line0.trim().toLowerCase(Locale.ROOT);
 
-        return normalized.equals(MARKER_PLACEHOLDER.toLowerCase(Locale.ROOT))
-                || normalized.equals(LINE_MARKER_PLACEHOLDER.toLowerCase(Locale.ROOT))
-            || normalized.equals(BM_LINE_TAG.toLowerCase(Locale.ROOT))
-            || normalized.equals(BM_LINE_UNDER_TAG.toLowerCase(Locale.ROOT));
+        if (normalized.equals(BM_LINE_TAG.toLowerCase(Locale.ROOT))
+                || normalized.equals(BM_LINE_UNDER_TAG.toLowerCase(Locale.ROOT))) {
+            return true;
+        }
+
+        return hasPoiMarkerAtLocation(block);
+    }
+
+    private boolean hasPoiMarkerAtLocation(Block block) {
+        MarkerSet markerSet = featureProvider.getMarkerSet().get(block.getWorld());
+        if (markerSet == null) return false;
+
+        String markerId = MARKER_ID_PREFIX + (double) block.getX() + "-" + (double) block.getY() + "-" + (double) block.getZ();
+        return markerSet.get(markerId) != null;
     }
 
     private Set<Location> collectMarkerSignLocations(World world) {

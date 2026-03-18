@@ -138,8 +138,6 @@ public class SignWatcher implements Listener {
         POIMarker marker = POIMarker.builder().position(pos).label(fullLabel).icon(icon, anchor).maxDistance(100000).detail(markerDetails).build();
         featureProvider.getMarkerSet().get(block.getWorld()).put(id, marker);
 
-        // ### Replace first line, with prefix, e.g. [map], to <marker> indicator
-        event.setLine(0, MARKER_PLACEHOLDER);
         markerVisibilityService.applyVisibilityForLocation(block.getWorld(), block.getLocation());
         event.getPlayer().sendMessage(formatMessage(String.format(ADDED_TEMPLATE, markerIcon.name(), pos.getFloorX(), pos.getFloorY(), pos.getFloorZ())));
     }
@@ -184,6 +182,7 @@ public class SignWatcher implements Listener {
     private void handleLineSign(SignChangeEvent event, boolean underMode) {
         String lineId = event.getLine(1);
         String orderRaw = event.getLine(2);
+        String colorRaw = event.getLine(3);
 
         if (lineId == null || lineId.isBlank() || orderRaw == null || orderRaw.isBlank()) {
             event.getPlayer().sendMessage(formatMessage(LINE_INPUT_ERROR_TEMPLATE));
@@ -204,11 +203,11 @@ public class SignWatcher implements Listener {
                 block.getWorld(),
                 lineId.trim(),
                 order,
-            block.getLocation(),
-            underMode
+                block.getLocation(),
+                underMode,
+                colorRaw == null ? "" : colorRaw
         );
 
-        event.setLine(0, LINE_MARKER_PLACEHOLDER);
         markerVisibilityService.applyVisibilityForLocation(block.getWorld(), block.getLocation());
         event.getPlayer().sendMessage(formatMessage(String.format(
                 LINE_POINT_TEMPLATE,

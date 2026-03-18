@@ -23,7 +23,6 @@ import static dev.deimoslabs.easysignmarkers.Constants.LINE_DEPTH_TEST;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_ID_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_LABEL_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MAX_DISTANCE;
-import static dev.deimoslabs.easysignmarkers.Constants.LINE_UNDER_COLOR_ALPHA;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_UNDER_DEPTH_TEST;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_WIDTH;
 
@@ -40,8 +39,8 @@ public class LineMarkerManager {
         this.lineStore = lineStore;
     }
 
-    public LineRenderResult upsertPoint(World world, String lineId, int order, Location location, boolean under) {
-        lineStore.put(world, lineId, order, location, under);
+    public LineRenderResult upsertPoint(World world, String lineId, int order, Location location, boolean under, String colorText) {
+        lineStore.put(world, lineId, order, location, under, colorText);
         lineStore.saveWorld(world);
         return redrawLine(world, lineId);
     }
@@ -85,16 +84,18 @@ public class LineMarkerManager {
 
         boolean underMode = lineStore.isUnderMode(world, lineId);
         boolean depthTest = underMode ? LINE_UNDER_DEPTH_TEST : LINE_DEPTH_TEST;
-        float alpha = underMode ? LINE_UNDER_COLOR_ALPHA : LINE_COLOR_ALPHA;
+        float defaultAlpha = LINE_COLOR_ALPHA;
+        String colorText = lineStore.getPrimaryColor(world, lineId);
+        ParsedLineColor parsedLineColor = parseLineColor(colorText, defaultAlpha);
 
         Line line = Line.builder().addPoints(points.toArray(new Vector3d[0])).build();
         LineMarker marker = LineMarker.builder()
                 .label(LINE_MARKER_LABEL_PREFIX + lineId)
                 .line(line)
                 .centerPosition()
-            .depthTestEnabled(depthTest)
+                .depthTestEnabled(depthTest)
                 .lineWidth(LINE_WIDTH)
-            .lineColor(new Color(LINE_COLOR_RED, LINE_COLOR_GREEN, LINE_COLOR_BLUE, alpha))
+                .lineColor(new Color(parsedLineColor.red(), parsedLineColor.green(), parsedLineColor.blue(), parsedLineColor.alpha()))
                 .maxDistance(LINE_MAX_DISTANCE)
                 .detail("lineId: " + lineId + "<br>points: " + orderedLocations.size())
                 .build();
@@ -111,5 +112,37 @@ public class LineMarkerManager {
     }
 
     public record LineRenderResult(int pointCount, boolean rendered) {
+    }
+
+    private ParsedLineColor parseLineColor(String colorText, float defaultAlpha) {
+        if (colorText == null || colorText.isBlank()) {
+            return new ParsedLineColor(LINE_COLOR_RED, LINE_COLOR_GREEN, LINE_COLOR_BLUE, defaultAlpha);
+        }
+
+        String raw = colorText.trim();
+        if (raw.startsWith("#")) raw = raw.substring(1);
+
+        try {
+            if (raw.length() == 6) {
+                int red = Integer.parseInt(raw.substring(0, 2), 16);
+                int green = Integer.parseInt(raw.substring(2, 4), 16);
+                int blue = Integer.parseInt(raw.substring(4, 6), 16);
+                return new ParsedLineColor(red, green, blue, defaultAlpha);
+            }
+
+            if (raw.length() == 8) {
+                int red = Integer.parseInt(raw.substring(0, 2), 16);
+                int green = Integer.parseInt(raw.substring(2, 4), 16);
+                int blue = Integer.parseInt(raw.substring(4, 6), 16);
+                int alphaInt = Integer.parseInt(raw.substring(6, 8), 16);
+                return new ParsedLineColor(red, green, blue, alphaInt / 255.0f);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        return new ParsedLineColor(LINE_COLOR_RED, LINE_COLOR_GREEN, LINE_COLOR_BLUE, defaultAlpha);
+    }
+
+    private record ParsedLineColor(int red, int green, int blue, float alpha) {
     }
 }
