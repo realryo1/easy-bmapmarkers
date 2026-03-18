@@ -39,6 +39,9 @@ public class Constants {
     /** Sign tag for line markers. */
     public final static String BM_LINE_TAG = "[BMLine]";
 
+    /** Sign tag for underground line markers (always visible through terrain). */
+    public final static String BM_LINE_UNDER_TAG = "[BMLineUnder]";
+
     /**
      * Label prefix displayed in BlueMap for sign markers.
      */
@@ -86,6 +89,10 @@ public class Constants {
     public final static int LINE_COLOR_BLUE = 80;
     public final static float LINE_COLOR_ALPHA = 1.0f;
     public final static int LINE_MAX_DISTANCE = 100000;
+
+    /** Style used when the first (lowest order) point is BMLineUnder. */
+    public final static boolean LINE_UNDER_DEPTH_TEST = false;
+    public final static float LINE_UNDER_COLOR_ALPHA = 0.45f;
 
     /** Command and permission constants for marker edit mode. */
     public final static String EDIT_MODE_COMMAND = "bmedit";

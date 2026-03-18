@@ -23,6 +23,8 @@ import static dev.deimoslabs.easysignmarkers.Constants.LINE_DEPTH_TEST;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_ID_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_LABEL_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MAX_DISTANCE;
+import static dev.deimoslabs.easysignmarkers.Constants.LINE_UNDER_COLOR_ALPHA;
+import static dev.deimoslabs.easysignmarkers.Constants.LINE_UNDER_DEPTH_TEST;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_WIDTH;
 
 /**
@@ -38,8 +40,8 @@ public class LineMarkerManager {
         this.lineStore = lineStore;
     }
 
-    public LineRenderResult upsertPoint(World world, String lineId, int order, Location location) {
-        lineStore.put(world, lineId, order, location);
+    public LineRenderResult upsertPoint(World world, String lineId, int order, Location location, boolean under) {
+        lineStore.put(world, lineId, order, location, under);
         lineStore.saveWorld(world);
         return redrawLine(world, lineId);
     }
@@ -81,14 +83,18 @@ public class LineMarkerManager {
                 .map(location -> new Vector3d(location.getX(), location.getY(), location.getZ()))
                 .collect(Collectors.toList());
 
+        boolean underMode = lineStore.isUnderMode(world, lineId);
+        boolean depthTest = underMode ? LINE_UNDER_DEPTH_TEST : LINE_DEPTH_TEST;
+        float alpha = underMode ? LINE_UNDER_COLOR_ALPHA : LINE_COLOR_ALPHA;
+
         Line line = Line.builder().addPoints(points.toArray(new Vector3d[0])).build();
         LineMarker marker = LineMarker.builder()
                 .label(LINE_MARKER_LABEL_PREFIX + lineId)
                 .line(line)
                 .centerPosition()
-                .depthTestEnabled(LINE_DEPTH_TEST)
+            .depthTestEnabled(depthTest)
                 .lineWidth(LINE_WIDTH)
-                .lineColor(new Color(LINE_COLOR_RED, LINE_COLOR_GREEN, LINE_COLOR_BLUE, LINE_COLOR_ALPHA))
+            .lineColor(new Color(LINE_COLOR_RED, LINE_COLOR_GREEN, LINE_COLOR_BLUE, alpha))
                 .maxDistance(LINE_MAX_DISTANCE)
                 .detail("lineId: " + lineId + "<br>points: " + orderedLocations.size())
                 .build();

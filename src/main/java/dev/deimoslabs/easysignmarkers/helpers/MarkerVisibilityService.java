@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_TAG;
+import static dev.deimoslabs.easysignmarkers.Constants.BM_LINE_UNDER_TAG;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_PLACEHOLDER;
 import static dev.deimoslabs.easysignmarkers.Constants.MARKER_ID_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.MARKER_PLACEHOLDER;
@@ -114,7 +115,8 @@ public class MarkerVisibilityService {
 
         return normalized.equals(MARKER_PLACEHOLDER.toLowerCase(Locale.ROOT))
                 || normalized.equals(LINE_MARKER_PLACEHOLDER.toLowerCase(Locale.ROOT))
-                || normalized.equals(BM_LINE_TAG.toLowerCase(Locale.ROOT));
+            || normalized.equals(BM_LINE_TAG.toLowerCase(Locale.ROOT))
+            || normalized.equals(BM_LINE_UNDER_TAG.toLowerCase(Locale.ROOT));
     }
 
     private Set<Location> collectMarkerSignLocations(World world) {

@@ -78,8 +78,8 @@ public class SignWatcher implements Listener {
     public void onSignWrite(SignChangeEvent event) {
 
         final String line0 = event.getLine(0);
-        if (line0 != null && line0.equalsIgnoreCase(BM_LINE_TAG)) {
-            handleLineSign(event);
+        if (line0 != null && (line0.equalsIgnoreCase(BM_LINE_TAG) || line0.equalsIgnoreCase(BM_LINE_UNDER_TAG))) {
+            handleLineSign(event, line0.equalsIgnoreCase(BM_LINE_UNDER_TAG));
             return;
         }
 
@@ -181,7 +181,7 @@ public class SignWatcher implements Listener {
      * - line 2: line id
      * - line 3: numeric order
      */
-    private void handleLineSign(SignChangeEvent event) {
+    private void handleLineSign(SignChangeEvent event, boolean underMode) {
         String lineId = event.getLine(1);
         String orderRaw = event.getLine(2);
 
@@ -204,7 +204,8 @@ public class SignWatcher implements Listener {
                 block.getWorld(),
                 lineId.trim(),
                 order,
-                block.getLocation()
+            block.getLocation(),
+            underMode
         );
 
         event.setLine(0, LINE_MARKER_PLACEHOLDER);

@@ -63,7 +63,7 @@ You can also create a line marker by linking multiple signs.
 
 Fill signs as follows:
 
-- **1st line**: `[BMLine]`
+- **1st line**: `[BMLine]` or `[BMLineUnder]`
 - **2nd line**: line ID (e.g. `road-main`)
 - **3rd line**: order number (e.g. `1`, `2`, `3`)
 - **4th line**: optional (ignored for now)
@@ -73,6 +73,9 @@ How it works:
 - Points are grouped by line ID and sorted by the numeric order.
 - If a line has **2 or more points**, a BlueMap `LineMarker` is rendered.
 - If a point-sign is broken and the line drops below 2 points, the line marker is removed.
+- Rendering mode is decided by the first point (lowest order):
+- If the first point is `[BMLineUnder]`, the whole line is rendered as underground style (transparent + not hidden by terrain).
+- If the first point is `[BMLine]`, the whole line uses normal style.
 
 Notes:
 
@@ -89,7 +92,7 @@ Notes:
 Notes:
 
 - There are currently no other plugin commands.
-- Existing sign workflows (`[icon]`, `[BMLine]`) are event-driven and do not require commands.
+- Existing sign workflows (`[icon]`, `[BMLine]`, `[BMLineUnder]`) are event-driven and do not require commands.
 
 ## Permissions
 
