@@ -14,9 +14,11 @@
 - サーバーに **BlueMap** が導入されている必要があります（必須依存）。
 - BlueMap 導入済みなら、本プラグインの jar を `plugins` フォルダへ入れるだけで利用できます。
 
+起動時に、`/plugins/EasyBMSignMarkers/marker-set-<world>.json` から現行プラグインフォルダへファイルコピーした上で、新形式 `marker-set-<world>.yml` へ自動移行されます。
+
 ## 設定
 
-`plugins/EasyBMSignMarkers/config.yml`:
+`plugins/EasyBlueMapSignMarkersAndLines/config.yml`:
 
 - `startprefix`: 看板タグの開始プレフィックス
 - `endprefix`: 看板タグの終了プレフィックス

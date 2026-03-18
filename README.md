@@ -16,8 +16,10 @@ Probably works on: Folia / Spigot / Purpur
 You need to have **BlueMap** installed on your server. The plugin depends on it.
 If you already have **BlueMap**, put the jar file into `plugins` folder on your server... and that's it!
 
+On startup, legacy marker files are copied from `/plugins/EasyBMSignMarkers/marker-set-<world>.json` into this plugin folder and then migrated to `marker-set-<world>.yml`.
+
 ## Config
-You can configure the tag wrappers used on sign line 1 in `plugins/EasyBMSignMarkers/config.yml`.
+You can configure the tag wrappers used on sign line 1 in `plugins/EasyBlueMapSignMarkersAndLines/config.yml`.
 
 - `startprefix`: start wrapper for sign tags
 - `endprefix`: end wrapper for sign tags

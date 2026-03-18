@@ -51,9 +51,15 @@ public class Constants {
      */
     public final static String SIGN_MARKERS_PREFIX = "Sign Markers For ";
     /**
-     * Suffix for the JSON files that store marker sets.
+        * Suffix for marker-set data files.
      */
+        public final static String MARKER_DATA_FILENAME = ".yml";
+
+        /** Suffix for legacy marker-set JSON files (migration source). */
     public final static String JSON_FILENAME = ".json";
+
+        /** Legacy plugin data folder used as migration source for marker JSON files. */
+        public final static String LEGACY_PLUGIN_DATA_FOLDER = "EasyBMSignMarkers";
     /**
      * Template message shown when a marker is removed. Format args: x, y, z (integers).
      */

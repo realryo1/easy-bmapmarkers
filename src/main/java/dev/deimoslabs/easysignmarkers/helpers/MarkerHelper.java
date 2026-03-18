@@ -8,9 +8,12 @@ import de.bluecolored.bluemap.api.markers.MarkerSet;
 import dev.deimoslabs.easysignmarkers.FeatureProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,15 +69,14 @@ public class MarkerHelper {
     }
 
     /**
-     * Creates plugin data files (one JSON file per world) and the plugin data folder if it does not exist.
-     * Files are named using the {@code MARKER_SET_PREFIX} and {@code JSON_FILENAME} constants.
+     * Creates plugin data files (one YAML file per world) and the plugin data folder if it does not exist.
+     * Files are named using the {@code MARKER_SET_PREFIX} and {@code MARKER_DATA_FILENAME} constants.
      * This method is safe to call multiple times.
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void createFiles() {
         for (World world : Bukkit.getWorlds()) {
-            String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
-            File file = new File(plugin.getDataFolder(), name);
+            File file = worldMarkerDataFile(world);
             try {
                 File folder = plugin.getDataFolder();
                 if (!folder.exists()) folder.mkdirs();
@@ -116,37 +118,104 @@ public class MarkerHelper {
     }
 
     /**
-     * Saves the marker set associated with the given world to a JSON file in the plugin data folder.
+     * Saves the marker set associated with the given world to a YAML file in the plugin data folder.
      * I/O exceptions are caught and logged as warnings.
      *
      * @param world the world for which the marker set is saved
      */
     private void saveWorldMarkerSet(World world) {
-        String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
-        File file = new File(plugin.getDataFolder(), name);
-        try (FileWriter writer = new FileWriter(file)) {
-            MarkerGson.INSTANCE.toJson(featureProvider.getMarkerSet().get(world), writer);
+        File file = worldMarkerDataFile(world);
+        YamlConfiguration yaml = new YamlConfiguration();
+
+        try (StringWriter markerJsonWriter = new StringWriter()) {
+            MarkerGson.INSTANCE.toJson(featureProvider.getMarkerSet().get(world), markerJsonWriter);
+            yaml.set("markerSetJson", markerJsonWriter.toString());
+            yaml.save(file);
         } catch (IOException ex) {
             logger.log(Level.WARNING, "Problem while saving marker files!", ex);
         }
     }
 
     /**
-     * Loads the marker set for the given world from a JSON file located in the plugin data folder.
-     * If the file does not exist it will be ignored (no initialization). Read errors are logged.
+     * Loads the marker set for the given world from a YAML file located in the plugin data folder.
+     * If no YAML payload exists, attempts migration from legacy JSON file.
      *
      * @param world the world for which the marker set should be loaded
      */
     private void loadWorldMarkerSet(World world) {
-        String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
-        File file = new File(plugin.getDataFolder(), name);
-        try (FileReader reader = new FileReader(file)) {
+        File file = worldMarkerDataFile(world);
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        String markerJson = yaml.getString("markerSetJson");
+
+        if (markerJson == null || markerJson.isBlank()) {
+            migrateLegacyJsonIfExists(world);
+            return;
+        }
+
+        try (StringReader reader = new StringReader(markerJson)) {
             MarkerSet set = MarkerGson.INSTANCE.fromJson(reader, MarkerSet.class);
             if (set != null) featureProvider.getMarkerSet().put(world, set);
-        } catch (FileNotFoundException ignored) {
-        } catch (IOException ex) {
-            logger.log(Level.WARNING, "Problem while loading marker files!", ex);
         }
+    }
+
+    private void migrateLegacyJsonIfExists(World world) {
+        File legacyFile = worldLegacyMarkerJsonFile(world);
+        if (!legacyFile.exists()) {
+            copyLegacyJsonFromOldPluginFolder(world, legacyFile);
+        }
+        if (!legacyFile.exists()) return;
+
+        try (FileReader reader = new FileReader(legacyFile)) {
+            MarkerSet set = MarkerGson.INSTANCE.fromJson(reader, MarkerSet.class);
+            if (set == null) return;
+
+            featureProvider.getMarkerSet().put(world, set);
+            saveWorldMarkerSet(world);
+
+            File migrated = new File(legacyFile.getParentFile(), legacyFile.getName() + ".migrated");
+            if (!legacyFile.renameTo(migrated)) {
+                logger.info("Legacy marker JSON migrated but could not rename file: " + legacyFile.getName());
+            }
+            logger.info("Migrated legacy marker JSON to YAML for world: " + world.getName());
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Problem while migrating legacy marker JSON files!", ex);
+        }
+    }
+
+    private void copyLegacyJsonFromOldPluginFolder(World world, File destinationLegacyFile) {
+        File sourceLegacyFile = worldLegacyMarkerJsonFileFromOldPluginFolder(world);
+        if (!sourceLegacyFile.exists()) return;
+
+        try {
+            File parent = destinationLegacyFile.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+
+            Files.copy(sourceLegacyFile.toPath(), destinationLegacyFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Copied legacy marker JSON from old plugin folder: " + sourceLegacyFile.getPath());
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Problem while copying legacy marker JSON from old plugin folder!", ex);
+        }
+    }
+
+    private File worldMarkerDataFile(World world) {
+        String name = MARKER_SET_PREFIX + world.getName() + MARKER_DATA_FILENAME;
+        return new File(plugin.getDataFolder(), name);
+    }
+
+    private File worldLegacyMarkerJsonFile(World world) {
+        String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
+        return new File(plugin.getDataFolder(), name);
+    }
+
+    private File worldLegacyMarkerJsonFileFromOldPluginFolder(World world) {
+        String name = MARKER_SET_PREFIX + world.getName() + JSON_FILENAME;
+        File pluginsFolder = plugin.getDataFolder().getParentFile();
+        if (pluginsFolder == null) {
+            return new File(plugin.getDataFolder(), name);
+        }
+
+        File oldPluginFolder = new File(pluginsFolder, LEGACY_PLUGIN_DATA_FOLDER);
+        return new File(oldPluginFolder, name);
     }
 
 }
