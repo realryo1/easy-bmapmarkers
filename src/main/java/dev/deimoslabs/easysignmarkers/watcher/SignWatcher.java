@@ -7,7 +7,9 @@ import de.bluecolored.bluemap.api.markers.Marker;
 import de.bluecolored.bluemap.api.markers.MarkerSet;
 import de.bluecolored.bluemap.api.markers.POIMarker;
 import dev.deimoslabs.easysignmarkers.FeatureProvider;
+import dev.deimoslabs.easysignmarkers.helpers.LineMarkerManager;
 import dev.deimoslabs.easysignmarkers.helpers.MarkerIcon;
+import dev.deimoslabs.easysignmarkers.helpers.MarkerVisibilityService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.block.Block;
@@ -43,14 +45,20 @@ public class SignWatcher implements Listener {
      * - the central map of {@link org.bukkit.World} -> {@link de.bluecolored.bluemap.api.markers.MarkerSet}
      */
     private final FeatureProvider featureProvider;
+    /** Manager for BMLine marker lifecycle. */
+    private final LineMarkerManager lineMarkerManager;
+    /** Visibility controller for marker signs. */
+    private final MarkerVisibilityService markerVisibilityService;
 
     /**
      * Constructs a SignWatcher using the provided FeatureProvider to access plugin features.
      *
      * @param featureProvider provider exposing BlueMap webroot, logger and marker map
      */
-    public SignWatcher(FeatureProvider featureProvider) {
+    public SignWatcher(FeatureProvider featureProvider, LineMarkerManager lineMarkerManager, MarkerVisibilityService markerVisibilityService) {
         this.featureProvider = featureProvider;
+        this.lineMarkerManager = lineMarkerManager;
+        this.markerVisibilityService = markerVisibilityService;
     }
 
     /**
@@ -69,11 +77,16 @@ public class SignWatcher implements Listener {
     @EventHandler
     public void onSignWrite(SignChangeEvent event) {
 
+        final String line0 = event.getLine(0);
+        if (line0 != null && line0.equalsIgnoreCase(BM_LINE_TAG)) {
+            handleLineSign(event);
+            return;
+        }
+
         String iconLabel;
         MarkerIcon markerIcon;
 
         // ### Mapping sign's line 0 to specific marker type (translates to icon)
-        final String line0 = event.getLine(0);
         if (line0 != null && !line0.isBlank() && line0.startsWith("[") && line0.endsWith("]")) {
             markerIcon = MarkerIcon.match(line0);
             iconLabel = markerIcon.name();
@@ -127,6 +140,7 @@ public class SignWatcher implements Listener {
 
         // ### Replace first line, with prefix, e.g. [map], to <marker> indicator
         event.setLine(0, MARKER_PLACEHOLDER);
+        markerVisibilityService.applyVisibilityForLocation(block.getWorld(), block.getLocation());
         event.getPlayer().sendMessage(formatMessage(String.format(ADDED_TEMPLATE, markerIcon.name(), pos.getFloorX(), pos.getFloorY(), pos.getFloorZ())));
     }
 
@@ -143,6 +157,11 @@ public class SignWatcher implements Listener {
         Block block = event.getBlock();
         if (!(block.getState() instanceof Sign)) return;
 
+        int affectedLineCount = lineMarkerManager.removePointsAtLocation(block.getWorld(), block.getLocation()).size();
+        if (affectedLineCount > 0) {
+            event.getPlayer().sendMessage(formatMessage(String.format(LINE_REMOVED_TEMPLATE, affectedLineCount)));
+        }
+
         MarkerSet set = featureProvider.getMarkerSet().get(block.getWorld());
         if (set == null) return;
 
@@ -152,8 +171,56 @@ public class SignWatcher implements Listener {
         Marker marker = set.get(id);
         if (marker == null) return;
         set.remove(id);
+        markerVisibilityService.applyVisibilityForLocation(block.getWorld(), block.getLocation());
 
         event.getPlayer().sendMessage(formatMessage(String.format(REMOVED_TEMPLATE, (int) pos.getX(), (int) pos.getY(), (int) pos.getZ())));
+    }
+
+    /**
+     * Handles BMLine sign input:
+     * - line 2: line id
+     * - line 3: numeric order
+     */
+    private void handleLineSign(SignChangeEvent event) {
+        String lineId = event.getLine(1);
+        String orderRaw = event.getLine(2);
+
+        if (lineId == null || lineId.isBlank() || orderRaw == null || orderRaw.isBlank()) {
+            event.getPlayer().sendMessage(formatMessage(LINE_INPUT_ERROR_TEMPLATE));
+            return;
+        }
+
+        int order;
+        try {
+            order = Integer.parseInt(orderRaw.trim());
+        } catch (NumberFormatException ex) {
+            event.getPlayer().sendMessage(formatMessage(LINE_INPUT_ERROR_TEMPLATE));
+            return;
+        }
+
+        Block block = event.getBlock();
+        Vector3d pos = new Vector3d(block.getX(), block.getY(), block.getZ());
+        LineMarkerManager.LineRenderResult result = lineMarkerManager.upsertPoint(
+                block.getWorld(),
+                lineId.trim(),
+                order,
+                block.getLocation()
+        );
+
+        event.setLine(0, LINE_MARKER_PLACEHOLDER);
+        markerVisibilityService.applyVisibilityForLocation(block.getWorld(), block.getLocation());
+        event.getPlayer().sendMessage(formatMessage(String.format(
+                LINE_POINT_TEMPLATE,
+                lineId.trim(),
+                order,
+                pos.getFloorX(),
+                pos.getFloorY(),
+                pos.getFloorZ()
+        )));
+
+        if (!result.rendered()) {
+            event.getPlayer().sendMessage(formatMessage(String.format(LINE_WAITING_TEMPLATE, lineId.trim(), result.pointCount())));
+        }
     }
 
     /**

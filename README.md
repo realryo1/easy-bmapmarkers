@@ -1,18 +1,30 @@
 
-## Easy BlueMap Sign Markers
+## Easy BlueMap Sign Markers & Lines
 
 ![plugin_icon](Icon_EasyBMSignMarkers.png)
 
-The idea is simple - you put a sign in the game, and you can see it on your BlueMap.
+Japanese version: [README_ja.md](README_ja.md)
 
-This plugin is a fork of and old, no longer maintained solution - [BlueMapSignMarkers](https://modrinth.com/plugin/bluemapsignmarkers) - introducing some simplification and quality-of-life tweaks, as compared to the original source. 
-The goal was to make it usable in as little steps as possible, and as easy as possible for players to understand how to use it.
+This plugin lets you place signs in-game and display both markers and lines on BlueMap.
 
-Compatible with Paper / Folia / Spigot / Purpur. No other software compatibility (e.g. Fabric) is planned, as there are already similar, and good solutions for those.
+This plugin is based on the unmaintained [BlueMapSignMarkers](https://modrinth.com/plugin/bluemapsignmarkers), and also extends [EasyBlueMapSignMarkers](https://modrinth.com/plugin/easy-bluemap-sign-markers) with additional features and quality-of-life improvements.
+
+Tested server: Paper
+Probably works on: Folia / Spigot / Purpur
 
 ## Setup
 You need to have **BlueMap** installed on your server. The plugin depends on it.
 If you already have **BlueMap**, put the jar file into `plugins` folder on your server... and that's it!
+
+## Edit mode (show hidden marker signs)
+By default, marker signs are hidden. You can reveal them per-player only while editing.
+
+Behavior:
+
+- Edit mode is **player-specific**.
+- While edit mode is ON, marker signs are visible to that player.
+- While edit mode is OFF, marker signs are hidden for that player.
+- If you try to place/interact on a location where a marker sign exists while edit mode is OFF, the action is canceled and a warning message is shown.
 
 ## How to use
 Place any sign in the game. Fill the sign as follows:
@@ -25,7 +37,7 @@ Place any sign in the game. Fill the sign as follows:
 **Note:** after adding the marker, the first line will change to `> marker <` in order to indicate that the given sign acts as marker. The intention here is to ensure players will not remove markers by accident.
 
 First line **MUST** be filled. If the 1st line does not contain a valid name, but still the brackets `[` and `]` are being used - the fallback value will be assigned - `[map]` - and marker will be created anyway.
-From the following 3 text-oriented lines, at least one must be non-empty. If all are empty, marker will not be created. Assumption here is, that the marker **needs** a description.
+At least one of lines 2-4 must contain text. If all are empty, the marker is not created.
 
 ## Example
 Below example will create marker on your map with `star` icon assigned.
@@ -45,6 +57,49 @@ After a while, you will see the marker on your BlueMap
 And when you click it - the popup containing your sign description will appear
 
 ![sign4](example4.png)
+
+## BMLine (connect multiple signs with a line)
+You can also create a line marker by linking multiple signs.
+
+Fill signs as follows:
+
+- **1st line**: `[BMLine]`
+- **2nd line**: line ID (e.g. `road-main`)
+- **3rd line**: order number (e.g. `1`, `2`, `3`)
+- **4th line**: optional (ignored for now)
+
+How it works:
+
+- Points are grouped by line ID and sorted by the numeric order.
+- If a line has **2 or more points**, a BlueMap `LineMarker` is rendered.
+- If a point-sign is broken and the line drops below 2 points, the line marker is removed.
+
+Notes:
+
+- Line IDs are scoped per world.
+- Line-point data is persisted per world in plugin data files (`line-data-<world>.yml`).
+- Style (color/width/depth-test) is currently fixed in code and can be extended later.
+
+## Commands
+
+| Command | Description | Usage |
+|---|---|---|
+| `/bmedit` | Toggle per-player marker-sign edit mode | `/bmedit [on|off|toggle]` |
+
+Notes:
+
+- There are currently no other plugin commands.
+- Existing sign workflows (`[icon]`, `[BMLine]`) are event-driven and do not require commands.
+
+## Permissions
+
+| Permission | Default | Description |
+|---|---|---|
+| `easybmsignmarkers.edit` | op | Allows using `/bmedit` to show hidden marker signs |
+
+Notes:
+
+- No additional permission nodes are required for placing or removing sign markers in the current implementation.
 
 ## Marker names
 These are the names that are available for the markers, plus the corresponding icons. Just use any of the values between brackets - `[` and `]`, e.g. `[bank]` - to place the marker on the **BlueMap**.
@@ -100,6 +155,3 @@ The images used are modified versions of original Dynmap assets. You can find th
 
 - [Dynmap on github](https://github.com/webbukkit/dynmap)
 - [Original resources](https://github.com/webbukkit/dynmap/tree/v3.0/DynmapCore/src/main/resources/markers)
-
-## Download
-You can download the plugin on [Modrinth](https://modrinth.com/project/easy-bluemap-sign-markers)

@@ -6,3 +6,14 @@ folia-supported: true
 authors: [deimiczny]
 depend: [BlueMap]
 description: Easily add markers to BlueMap with in-game signs
+
+commands:
+  bmedit:
+    description: Toggle marker-sign edit mode visibility
+    usage: /bmedit [on|off|toggle]
+    permission: easybmsignmarkers.edit
+
+permissions:
+  easybmsignmarkers.edit:
+    description: Allows using /bmedit to show hidden marker signs
+    default: op
