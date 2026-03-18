@@ -24,7 +24,9 @@ import java.util.jar.JarFile;
 import java.util.logging.Logger;
 
 import static dev.deimoslabs.easysignmarkers.Constants.CONFIG_TAG_END_PREFIX;
+import static dev.deimoslabs.easysignmarkers.Constants.CONFIG_LINE_WIDTH;
 import static dev.deimoslabs.easysignmarkers.Constants.CONFIG_TAG_START_PREFIX;
+import static dev.deimoslabs.easysignmarkers.Constants.DEFAULT_LINE_WIDTH;
 import static dev.deimoslabs.easysignmarkers.Constants.DEFAULT_TAG_END_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.DEFAULT_TAG_START_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.EDIT_MODE_COMMAND;
@@ -85,11 +87,12 @@ public class SignMarkers extends JavaPlugin implements FeatureProvider {
         saveDefaultConfig();
         String tagStartPrefix = readConfiguredPrefix(CONFIG_TAG_START_PREFIX, DEFAULT_TAG_START_PREFIX);
         String tagEndPrefix = readConfiguredPrefix(CONFIG_TAG_END_PREFIX, DEFAULT_TAG_END_PREFIX);
+        int configuredLineWidth = readConfiguredLineWidth(CONFIG_LINE_WIDTH, DEFAULT_LINE_WIDTH);
 
         new UpdateNotifier(this, MODRINTH_SLUG).checkForUpdates();
         markerHelper = new MarkerHelper(this);
         lineStore = new LineStore(this);
-        lineMarkerManager = new LineMarkerManager(this, lineStore);
+        lineMarkerManager = new LineMarkerManager(this, lineStore, configuredLineWidth);
         markerVisibilityService = new MarkerVisibilityService(this, lineStore, tagStartPrefix, tagEndPrefix);
         EditModeCommand editModeCommand = new EditModeCommand(markerVisibilityService);
         if (getCommand(EDIT_MODE_COMMAND) != null) {
@@ -168,5 +171,14 @@ public class SignMarkers extends JavaPlugin implements FeatureProvider {
             return fallback;
         }
         return value;
+    }
+
+    private int readConfiguredLineWidth(String key, int fallback) {
+        int configured = getConfig().getInt(key, fallback);
+        if (configured <= 0) {
+            logger.warning("Invalid config value for '" + key + "'. Falling back to default.");
+            return fallback;
+        }
+        return configured;
     }
 }

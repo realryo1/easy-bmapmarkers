@@ -39,8 +39,10 @@ public class Constants {
     /** Config keys and defaults for sign-tag wrappers. */
     public final static String CONFIG_TAG_START_PREFIX = "startprefix";
     public final static String CONFIG_TAG_END_PREFIX = "endprefix";
+    public final static String CONFIG_LINE_WIDTH = "line.width";
     public final static String DEFAULT_TAG_START_PREFIX = "=";
     public final static String DEFAULT_TAG_END_PREFIX = "=";
+    public final static int DEFAULT_LINE_WIDTH = 6;
 
     /** Sign tag keywords for line markers (wrapped by configured prefix/suffix). */
     public final static String BM_LINE_KEYWORD = "BMLine";
@@ -85,7 +87,6 @@ public class Constants {
 
     /** Default line style used for all BMLine markers. */
     public final static boolean LINE_DEPTH_TEST = true;
-    public final static int LINE_WIDTH = 3;
     public final static int LINE_COLOR_RED = 255;
     public final static int LINE_COLOR_GREEN = 80;
     public final static int LINE_COLOR_BLUE = 80;

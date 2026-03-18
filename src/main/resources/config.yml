@@ -2,3 +2,8 @@
 # Example with defaults: =map=, =BMLine=, =BMLineUnder=
 startprefix: "="
 endprefix: "="
+
+# BMLine rendering settings.
+# Width must be >= 1.
+line:
+	width: 6

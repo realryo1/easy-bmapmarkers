@@ -24,7 +24,6 @@ import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_ID_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MARKER_LABEL_PREFIX;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_MAX_DISTANCE;
 import static dev.deimoslabs.easysignmarkers.Constants.LINE_UNDER_DEPTH_TEST;
-import static dev.deimoslabs.easysignmarkers.Constants.LINE_WIDTH;
 
 /**
  * Creates, updates and removes BlueMap LineMarker objects based on persisted sign-line data.
@@ -33,10 +32,12 @@ public class LineMarkerManager {
 
     private final FeatureProvider featureProvider;
     private final LineStore lineStore;
+    private final int lineWidth;
 
-    public LineMarkerManager(FeatureProvider featureProvider, LineStore lineStore) {
+    public LineMarkerManager(FeatureProvider featureProvider, LineStore lineStore, int lineWidth) {
         this.featureProvider = featureProvider;
         this.lineStore = lineStore;
+        this.lineWidth = lineWidth;
     }
 
     public LineRenderResult upsertPoint(World world, String lineId, int order, Location location, boolean under, String colorText) {
@@ -98,7 +99,7 @@ public class LineMarkerManager {
                 .line(line)
                 .centerPosition()
                 .depthTestEnabled(depthTest)
-                .lineWidth(LINE_WIDTH)
+                .lineWidth(lineWidth)
                 .lineColor(new Color(parsedLineColor.red(), parsedLineColor.green(), parsedLineColor.blue(), parsedLineColor.alpha()))
                 .maxDistance(LINE_MAX_DISTANCE)
                 .detail("lineId: " + lineId + "<br>points: " + orderedLocations.size())

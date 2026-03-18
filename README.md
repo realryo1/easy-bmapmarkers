@@ -23,11 +23,13 @@ You can configure the tag wrappers used on sign line 1 in `plugins/EasyBlueMapSi
 
 - `startprefix`: start wrapper for sign tags
 - `endprefix`: end wrapper for sign tags
+- `line.width`: BMLine thickness (integer, minimum `1`)
 
 Defaults:
 
 - `startprefix: "="`
 - `endprefix: "="`
+- `line.width: 6`
 
 With defaults, valid examples are `=map=`, `=BMLine=`, `=BMLineUnder=`.
 

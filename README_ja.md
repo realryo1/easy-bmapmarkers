@@ -22,11 +22,13 @@
 
 - `startprefix`: 看板タグの開始プレフィックス
 - `endprefix`: 看板タグの終了プレフィックス
+- `line.width`: BMLine の太さ（整数、最小 `1`）
 
 デフォルト値:
 
 - `startprefix: "="`
 - `endprefix: "="`
+- `line.width: 6`
 
 デフォルト設定時の有効例: `=map=`, `=BMLine=`, `=BMLineUnder=`
 
