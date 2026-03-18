@@ -30,6 +30,12 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 
+### VS Code ###
+.vscode/
+
+### Generated Output ###
+bin/
+
 ### Systemowe / Inne ###
 .DS_Store
 thumbs.db
